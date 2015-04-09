@@ -1,0 +1,54 @@
+(ns darts.core
+  (:require [reagent.core :as reagent :refer [atom]]
+            [reagent.session :as session]
+            [secretary.core :as secretary :include-macros true]
+            [goog.events :as events]
+            [goog.history.EventType :as EventType]
+            [cljsjs.react :as react])
+  (:import goog.History))
+
+;; -------------------------
+;; Views
+
+(defn home-page []
+  [:div [:h2 "Dartflow"]
+   [:ul
+    [:li [:a {:href "#/new-game"} "New match"]]
+    [:li [:a {:href "#/standings"} "Standings"]]]])
+
+(defn new-game-page []
+  [:div [:h2 "New game"]
+   ])
+
+(defn current-page []
+  [:div [(session/get :current-page)]])
+
+;; -------------------------
+;; Routes
+(secretary/set-config! :prefix "#")
+
+(secretary/defroute "/" []
+  (session/put! :current-page #'home-page))
+
+(secretary/defroute "/new-game" []
+  (session/put! :current-page #'new-game-page))
+
+;; -------------------------
+;; History
+;; must be called after routes have been defined
+(defn hook-browser-navigation! []
+  (doto (History.)
+    (events/listen
+     EventType/NAVIGATE
+     (fn [event]
+       (secretary/dispatch! (.-token event))))
+    (.setEnabled true)))
+
+;; -------------------------
+;; Initialize app
+(defn mount-root []
+  (reagent/render [current-page] (.getElementById js/document "app")))
+
+(defn init! []
+  (hook-browser-navigation!)
+  (mount-root))

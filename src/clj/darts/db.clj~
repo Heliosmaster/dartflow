@@ -1,0 +1,10 @@
+(ns clj.darts.db)
+
+(defrecord Player [name])
+
+(def steven (Player. "Steven"))
+(def davide (Player. "Davide"))
+
+(defn list-players []
+  [davide steven])
+
