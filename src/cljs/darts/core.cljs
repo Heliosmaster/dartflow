@@ -1,5 +1,6 @@
 (ns darts.core
-  (:require [reagent.core :as reagent :refer [atom]]
+  (:require [ajax.core :refer [GET POST PUT] :as ajax-core]
+            [reagent.core :as reagent :refer [atom]]
             [reagent.session :as session]
             [secretary.core :as secretary :include-macros true]
             [goog.events :as events]
@@ -18,8 +19,9 @@
   (swap! db #(update-in % [:players] conj {:name name})))
 
 (defn list-players []
-  [:ul
-   (map (fn [player] ^{:key player} [:li (:name player)]) (:players @db))])
+  #_(let [players (GET "/list-players")]
+    [:ul
+     (map (fn [player] ^{:key player} [:li (:name player)]) players)]))
 
 (defn home-page []
   [:div [:h2 "Dartflow"]
@@ -42,7 +44,6 @@
       [:div
        [:a {:href "#"} "Home"]
        [:h2 "Existing players"]
-       (list-players)
        [:h3 "New player"]
        [:input {:type :text
                 :value @val
@@ -51,7 +52,7 @@
                                              .-target
                                              .-value)))
                 :placeholder "New player name"}]
-       [:button {:on-click #(add-new-player @val)} "Save"]])))
+       [:button {:on-click #(POST (str "/add-player/" @val))} "Save"]])))
 
 (defn current-page []
   [:div [(session/get :current-page)]])
