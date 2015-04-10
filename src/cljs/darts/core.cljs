@@ -2,6 +2,8 @@
   (:require [ajax.core :refer [GET POST PUT] :as ajax-core]
             [reagent.core :as reagent :refer [atom]]
             [reagent.session :as session]
+            [clojure.walk :as walk]
+            [cognitect.transit :as t]
             [secretary.core :as secretary :include-macros true]
             [goog.events :as events]
             [goog.history.EventType :as EventType]
@@ -15,16 +17,24 @@
                           {:name "Davide"}}
                :matches []}))
 
+(defonce players (atom nil))
+
 (defn add-new-player [name]
   (swap! db #(update-in % [:players] conj {:name name})))
 
+(defn parse-json [json]
+  (walk/keywordize-keys (t/read (t/reader :json) @players)))
+
 (defn list-players []
-  #_(let [players (GET "/list-players")]
+  (let [_ (GET "/list-players" {:handler (fn [res]
+                                           (reset! players res))}
+               )]
     [:ul
-     (map (fn [player] ^{:key player} [:li (:name player)]) players)]))
+     (map (fn [player] ^{:key player} [:li (:name player)]) (parse-json @players))]))
 
 (defn home-page []
   [:div [:h2 "Dartflow"]
+   (list-players)
    [:ul
     [:li [:a {:href "#/new-game"} "New match"]]
     [:li [:a {:href "#/standings"} "Standings"]]]])

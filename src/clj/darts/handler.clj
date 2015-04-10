@@ -1,6 +1,7 @@
 (ns darts.handler
   (:require [compojure.core :refer [GET POST defroutes]]
             [compojure.route :refer [not-found resources]]
+            [cheshire.core :as json]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [selmer.parser :refer [render-file]]
             [darts.db :as db]
@@ -11,10 +12,12 @@
   {:status 303
    :headers {"Location" path}})
 
+(defn list-players []
+  (json/generate-string (db/list-players)))
 
 (defroutes routes
   (GET "/" [] (render-file "templates/index.html" {:dev (env :dev?)}))
-  (GET "/list-players" [] (db/list-players))
+  (GET "/list-players" [] (list-players))
   (POST "/add-player/:name" [name]
         (do (db/add-player name)
             (redirect "/")))
