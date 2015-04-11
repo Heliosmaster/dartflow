@@ -33,16 +33,11 @@
 
 (def player1 (atom ""))
 (def player2 (atom ""))
+(def game-score (atom 310))
 
 (defn both-players-selected? []
   (and (not= @player1 "")
        (not= @player2 "")))
-
-(defn home-page []
-  [:div [:h2 "Dartflow"]
-   [:ul
-    [:li [:a {:href "#/new-game"} "New match"]]
-    [:li [:a {:href "#/standings"} "Standings"]]]])
 
 (def game (atom {}))
 
@@ -57,12 +52,7 @@
      [:div
       [:button {:on-click (fn []
                             (reset! player1 "")
-                            (reset! player2 ""))} "Reset"]
-      [:button {:on-click (fn []
-                            (swap! game #(assoc %1
-                                                :player1 %2
-                                                :player2 %3) @player1 @player2)
-                            (redirect-to "#/select-game-type"))} "Confirm"]])
+                            (reset! player2 ""))} "Reset"]])
    (let [select-fn (fn [player]
                      [:ul
                       (doall
@@ -80,8 +70,6 @@
        (select-fn player1)
        (select-fn player2)))
    [:a {:href "#/new-player"} "New player"]])
-
-(def game-score (atom 310))
 
 (defn select-game-pane []
   [:div
@@ -111,8 +99,6 @@
                                                 :starting-score %4) @player1 @player2 @game-score)
                             (redirect-to "#/play"))} "Confirm"]])])
 
-
-
 (defn new-player-page []
   (let [val (atom "")]
     (fn []
@@ -129,6 +115,12 @@
        [:button {:on-click (fn []
                              (POST (str "/add-player/" @val))
                              (redirect-to "#/new-game"))} "Save"]])))
+
+(defn home-page []
+  [:div [:h2 "Dartflow"]
+   [:ul
+    [:li [:a {:href "#/new-game"} "New match"]]
+    [:li [:a {:href "#/standings"} "Standings"]]]])
 
 (defn current-page []
   [:div [(session/get :current-page)]])
