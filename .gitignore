@@ -6,7 +6,10 @@ pom.xml.asc
 *.jar
 *.class
 /.lein-*
+*~
+*.db
 /.nrepl-port
 /resources/public/js
 /out
 /.repl
+figwheel_server.log

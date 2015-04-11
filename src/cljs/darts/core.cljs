@@ -25,35 +25,38 @@
 (defn parse-json [json]
   (walk/keywordize-keys (t/read (t/reader :json) @players)))
 
+(defn load-players []
+  (GET "/list-players" {:handler (fn [res]
+                                   (reset! players res))}))
+
 (defn list-players []
-  (let [_ (GET "/list-players" {:handler (fn [res]
-                                           (reset! players res))}
-               )]
-    [:ul
-     (map (fn [player] ^{:key player} [:li (:name player)]) (parse-json @players))]))
+  (load-players)
+  [:ul
+   (map (fn [player] ^{:key player} [:li (:name player)]) (parse-json @players))])
 
 (defn home-page []
   [:div [:h2 "Dartflow"]
-   (list-players)
    [:ul
     [:li [:a {:href "#/new-game"} "New match"]]
     [:li [:a {:href "#/standings"} "Standings"]]]])
 
 (defn new-game-page []
-  [:a {:href "#"} "Home"]
+  [:div
+   [:a {:href "#"} "Home"]
+   [:div [:h2 "New game"]
+    [:a {:href "#/new-player"} "New player"]
+    [:h3 "List of players"]
+    (list-players)
+    ]])
 
-  [:div [:h2 "New game"]
-   [:h3 "List of players"]
-   [:a {:href "#/new-player"} "New player"]
-   [:ul
-    (map (fn [player] ^{:key player} [:li (:name player)]) (:players @db))]])
+(defn redirect-to [path]
+  (set! js/window.location.href path))
 
 (defn new-player-page []
   (let [val (atom "")]
     (fn []
       [:div
        [:a {:href "#"} "Home"]
-       [:h2 "Existing players"]
        [:h3 "New player"]
        [:input {:type :text
                 :value @val
@@ -62,7 +65,9 @@
                                              .-target
                                              .-value)))
                 :placeholder "New player name"}]
-       [:button {:on-click #(POST (str "/add-player/" @val))} "Save"]])))
+       [:button {:on-click (fn []
+                             (POST (str "/add-player/" @val))
+                             (redirect-to "#/new-game"))} "Save"]])))
 
 (defn current-page []
   [:div [(session/get :current-page)]])
