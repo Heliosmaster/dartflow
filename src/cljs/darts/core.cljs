@@ -3,6 +3,7 @@
             [reagent.core :as reagent :refer [atom]]
             [reagent.session :as session]
             [clojure.walk :as walk]
+            [clojure.set :refer [difference]]
             [cognitect.transit :as t]
             [secretary.core :as secretary :include-macros true]
             [goog.events :as events]
@@ -18,6 +19,7 @@
                :matches []}))
 
 (defonce players (atom nil))
+(def selected-players (atom #{}))
 
 (defn add-new-player [name]
   (swap! db #(update-in % [:players] conj {:name name})))
@@ -41,13 +43,26 @@
     [:li [:a {:href "#/standings"} "Standings"]]]])
 
 (defn new-game-page []
+  (load-players)
   [:div
    [:a {:href "#"} "Home"]
    [:div [:h2 "New game"]
     [:a {:href "#/new-player"} "New player"]
-    [:h3 "List of players"]
-    (list-players)
-    ]])
+    [:h3 "Select two players"]
+    [:ul
+     (map (fn [{:keys [name]}]
+            ^{:key name}
+            [:li [:input {:type "checkbox"
+                          :disabled (and (= (count @selected-players)
+                                            2)
+                                         (not (@selected-players name)))
+
+                          :on-click (fn []
+                                      (if (@selected-players name)
+                                        (swap! selected-players difference #{name})
+                                        (swap! selected-players conj name)))}
+                  name]])
+          (parse-json @players))]]])
 
 (defn redirect-to [path]
   (set! js/window.location.href path))
