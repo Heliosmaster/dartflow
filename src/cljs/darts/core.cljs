@@ -50,19 +50,20 @@
     [:a {:href "#/new-player"} "New player"]
     [:h3 "Select two players"]
     [:ul
-     (map (fn [{:keys [name]}]
-            ^{:key name}
-            [:li [:input {:type "checkbox"
-                          :disabled (and (= (count @selected-players)
-                                            2)
-                                         (not (@selected-players name)))
+     (doall
+      (map (fn [{:keys [name]}]
+             ^{:key name}
+             [:li [:input {:type "checkbox"
+                           :disabled (and (= (count @selected-players)
+                                             2)
+                                          (not (@selected-players name)))
 
-                          :on-click (fn []
-                                      (if (@selected-players name)
-                                        (swap! selected-players difference #{name})
-                                        (swap! selected-players conj name)))}
-                  name]])
-          (parse-json @players))]]])
+                           :on-click (fn []
+                                       (if (@selected-players name)
+                                         (swap! selected-players difference #{name})
+                                         (swap! selected-players conj name)))}
+                   name]])
+           (parse-json @players)))]]])
 
 (defn redirect-to [path]
   (set! js/window.location.href path))
