@@ -41,54 +41,75 @@
 (defn home-page []
   [:div [:h2 "Dartflow"]
    [:ul
-    [:li [:a {:href "#/select-players"} "New match"]]
+    [:li [:a {:href "#/new-game"} "New match"]]
     [:li [:a {:href "#/standings"} "Standings"]]]])
 
 (def game (atom {}))
 
-(defn select-game-type-page []
+(defn play-page []
   [:div
    (println @game)
    "HELLO"])
 
-(defn select-players-page []
+(defn select-player-pane []
+  [:div
+   (when (both-players-selected?)
+     [:div
+      [:button {:on-click (fn []
+                            (reset! player1 "")
+                            (reset! player2 ""))} "Reset"]
+      [:button {:on-click (fn []
+                            (swap! game #(assoc %1
+                                                :player1 %2
+                                                :player2 %3) @player1 @player2)
+                            (redirect-to "#/select-game-type"))} "Confirm"]])
+   (let [select-fn (fn [player]
+                     [:ul
+                      (doall
+                       (map (fn [{:keys [name]}]
+                              (when (and (not= name @player1)
+                                         (not= name @player2))
+                                ^{:key name}
+                                [:li
+                                 [:button {:on-click (fn []
+                                                       (reset! player name))}
+                                  name]]))
+                            (parse-json @players)))]
+                     )]
+     (if (= "" @player1)
+       (select-fn player1)
+       (select-fn player2)))
+   [:a {:href "#/new-player"} "New player"]])
+
+(def game-score (atom 310))
+
+(defn select-game-pane []
+  [:div
+   [:p "Starting score: " @game-score]
+   (map (fn [score] ^{:key score} [:button {:on-click #(reset! game-score score)} score]) [310 410 510])])
+
+(defn new-game-page []
   (load-players)
   [:div
    [:a {:href "#"} "Home"]
    [:div [:h2 "New game"]
     [:ul
-     [:li "Player 1: "
-      [:span {:on-click #(reset! player1 "")} @player1]]
-     [:li "Player 2: "
-      [:span {:on-click #(reset! player2 "")} @player2]]]
-
-    (when (both-players-selected?)
-      [:div
-       [:button {:on-click (fn []
-                             (reset! player1 "")
-                             (reset! player2 ""))} "Reset"]
-       [:button {:on-click (fn []
-                             (swap! game #(assoc %1
-                                                 :player1 %2
-                                                 :player2 %3) @player1 @player2)
-                             (redirect-to "#/select-game-type"))} "Confirm"]])
-    (let [select-fn (fn [player]
-                      [:ul
-                       (doall
-                        (map (fn [{:keys [name]}]
-                               (when (and (not= name @player1)
-                                          (not= name @player2))
-                                 ^{:key name}
-                                 [:li [:button {:on-click (fn []
-                                                            (reset! player name))}
-                                       name]]))
-                             (parse-json @players)))]
-                      )]
-      (if (= "" @player1)
-        (select-fn player1)
-        (select-fn player2)))
-
-    [:a {:href "#/new-player"} "New player"]]])
+     [:li (str "Player 1: " @player1)]
+     [:li (str "Player 2: " @player2)]]
+    [select-player-pane]
+    [select-game-pane]]
+   (when (both-players-selected?)
+     [:div
+      [:button {:on-click (fn []
+                            (reset! player1 "")
+                            (reset! game-score 310)
+                            (reset! player2 ""))} "Reset"]
+      [:button {:on-click (fn []
+                            (swap! game #(assoc %1
+                                                :player1 %2
+                                                :player2 %3
+                                                :starting-score %4) @player1 @player2 @game-score)
+                            (redirect-to "#/play"))} "Confirm"]])])
 
 
 
@@ -107,7 +128,7 @@
                 :placeholder "New player name"}]
        [:button {:on-click (fn []
                              (POST (str "/add-player/" @val))
-                             (redirect-to "#/select-players"))} "Save"]])))
+                             (redirect-to "#/new-game"))} "Save"]])))
 
 (defn current-page []
   [:div [(session/get :current-page)]])
@@ -119,11 +140,11 @@
 (secretary/defroute "/" []
   (session/put! :current-page #'home-page))
 
-(secretary/defroute "/select-players" []
-  (session/put! :current-page #'select-players-page))
+(secretary/defroute "/new-game" []
+  (session/put! :current-page #'new-game-page))
 
-(secretary/defroute "/select-game-type" []
-  (session/put! :current-page #'select-game-type-page))
+(secretary/defroute "/play" []
+  (session/put! :current-page #'play-page))
 
 (secretary/defroute "/new-player" []
   (session/put! :current-page #'new-player-page))
