@@ -39,12 +39,57 @@
   (and (not= @player1 "")
        (not= @player2 "")))
 
-(def game (atom {}))
+(def example-game-2 (atom {0 {:name "Davide"
+                              :rounds []}
+                           1 {:name "Steven"
+                              :rounds []}
+                           :starting-score 310}))
+
+(def example-game (atom {0 {:name "Davide"
+                            :rounds [34 50 23 14 0]}
+                         1 {:name "Steven"
+                            :rounds [23 68 7 13]}
+                         :starting-score 310}))
+
+(defn remaining-points [{:keys [rounds]} starting-score]
+  (- starting-score (reduce + 0 rounds)))
+
+(def game example-game)
+
+(def score (atom ""))
+(def next-player (atom 0))
+
+(defn numpad []
+  [:div
+   (map (fn [n] ^{:key n}[:button {:on-click #(swap! score str n)}
+                          n]) (range 10))
+   [:button {:on-click #(reset! score "")} "Clear"]
+   [:button {:on-click (fn []
+                         (swap! game #(update-in %1 [%2 :rounds] conj (js/parseInt %3))
+                                @next-player
+                                @score)
+                         (reset! score "")
+                         (swap! next-player #(mod (inc %) 2)))} "Enter"]])
 
 (defn play-page []
-  [:div
-   (println @game)
-   "HELLO"])
+  (let [
+        ]
+    [:div
+     [:div
+      [:span "Player 1: " (remaining-points (get @game 0) (:starting-score @game))]
+      [:br]
+      [:span "Player 2: " (remaining-points (get @game 1) (:starting-score @game))]]
+     [:div
+      [:br ]
+      (str "Player " (+ 1 @next-player) " turn")
+      [:br]
+      [:input {:type :text
+               :disabled true
+               :value @score}]
+      [:br]
+      [numpad]
+      (println @game)]]))
+
 
 (defn select-player-pane []
   [:div
@@ -94,8 +139,10 @@
                             (reset! player2 ""))} "Reset"]
       [:button {:on-click (fn []
                             (swap! game #(assoc %1
-                                                :player1 %2
-                                                :player2 %3
+                                                0 {:name %2
+                                                   :rounds []}
+                                                1 {:name %3
+                                                   :rounds []}
                                                 :starting-score %4) @player1 @player2 @game-score)
                             (redirect-to "#/play"))} "Confirm"]])])
 
