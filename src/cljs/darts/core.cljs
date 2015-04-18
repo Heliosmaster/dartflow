@@ -91,45 +91,39 @@
       (println @game)]]))
 
 
-(defn select-player-pane []
-  [:div
-   (when (both-players-selected?)
-     [:div
-      [:button {:on-click (fn []
-                            (reset! player1 "")
-                            (reset! player2 ""))} "Reset"]])
-   (let [select-fn (fn [player]
-                     [:ul
-                      (doall
-                       (map (fn [{:keys [name]}]
-                              (when (and (not= name @player1)
-                                         (not= name @player2))
-                                ^{:key name}
-                                [:li
-                                 [:button {:on-click (fn []
-                                                       (reset! player name))}
-                                  name]]))
-                            (parse-json @players)))]
-                     )]
-     (if (= "" @player1)
-       (select-fn player1)
-       (select-fn player2)))
-   [:a {:href "#/new-player"} "New player"]])
-
 (defn select-game-pane []
   [:div
-   [:p "Starting score: " @game-score]
-   (map (fn [score] ^{:key score} [:button {:on-click #(reset! game-score score)} score]) [310 410 510])])
+   [:div "Starting score: "
+    [:select {:id "score"
+              :on-change #(reset! game-score (.-value (js/document.getElementById "score")))}
+     (map (fn [score] ^{:key score} [:option score]) [310 410 510])]]])
 
 (defn new-game-page []
   (load-players)
   [:div
    [:a {:href "#"} "Home"]
    [:div [:h2 "New game"]
+    [:a {:href "#/new-player"} "New player"]
     [:ul
-     [:li (str "Player 1: " @player1)]
-     [:li (str "Player 2: " @player2)]]
-    [select-player-pane]
+     [:li (str "Player 1: ")
+      [:select {:id "player1"
+                :value @player1
+                :on-change #(reset! player1 (.-value (js/document.getElementById "player1")))}
+       (doall
+        (concat [^{:key "1-nil"}[:option ""]]
+                (map (fn [{:keys [name]}]
+                       ^{:key name}[:option name])
+                     (parse-json @players))))]]
+     [:li (str "Player 2: ")
+      [:select {:id "player2"
+                :value @player2
+                :on-change #(reset! player2 (.-value (js/document.getElementById "player2")))}
+       (doall
+        (concat [^{:key "2-nil"}[:option ""]]
+                (map (fn [{:keys [name]}]
+                       (when (not= @player1 name)
+                         ^{:key name}[:option name]))
+                     (parse-json @players))))]]]
     [select-game-pane]]
    (when (both-players-selected?)
      [:div
