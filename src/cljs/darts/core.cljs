@@ -54,41 +54,70 @@
 (defn remaining-points [{:keys [rounds]} starting-score]
   (- starting-score (reduce + 0 rounds)))
 
+(def message (atom ""))
+
 (def game example-game)
 
 (def score (atom ""))
-(def next-player (atom 0))
+(def current-player (atom 0))
+
+(defn valid-score? [score points]
+  (and (<= score 180)
+       (<= score points)))
+
+(defn points [player]
+  (remaining-points (get @game player) (:starting-score @game)))
+
+(defn record-score [player new-score]
+  (swap! game #(update-in %1 [%2 :rounds] conj (js/parseInt %3))
+         player
+         new-score)
+  (reset! score "")
+  (swap! current-player #(mod (inc %) 2)))
+
+(defn clear-message []
+  (reset! message ""))
 
 (defn numpad []
   [:div
-   (map (fn [n] ^{:key n}[:button {:on-click #(swap! score str n)}
-                          n]) (range 10))
-   [:button {:on-click #(reset! score "")} "Clear"]
+   (map (fn [n]
+          ^{:key n}[:button
+                    {:on-click (fn []
+                                 (swap! score str n)
+                                 (clear-message))}
+                    n])
+        (range 10))
    [:button {:on-click (fn []
-                         (swap! game #(update-in %1 [%2 :rounds] conj (js/parseInt %3))
-                                @next-player
-                                @score)
+                         (swap! score #(subs % 0 (dec (count %)))))} "←"]
+   [:button {:on-click (fn []
                          (reset! score "")
-                         (swap! next-player #(mod (inc %) 2)))} "Enter"]])
+                         (clear-message))} "Clear"]
+   [:button {:on-click (fn []
+                         (let [new-score (js/parseInt @score)
+                               points (points @current-player)]
+                           (if (valid-score? new-score points)
+                             (record-score @current-player @score)
+                             (reset! message "Score not valid"))))} "Enter"]])
+
+
 
 (defn play-page []
-  (let [
-        ]
-    [:div
-     [:div
-      [:span "Player 1: " (remaining-points (get @game 0) (:starting-score @game))]
-      [:br]
-      [:span "Player 2: " (remaining-points (get @game 1) (:starting-score @game))]]
-     [:div
-      [:br ]
-      (str "Player " (+ 1 @next-player) " turn")
-      [:br]
-      [:input {:type :text
-               :disabled true
-               :value @score}]
-      [:br]
-      [numpad]
-      (println @game)]]))
+  [:div
+   @message
+   [:div
+    [:span "Player 1: " (remaining-points (get @game 0) (:starting-score @game))]
+    [:br]
+    [:span "Player 2: " (remaining-points (get @game 1) (:starting-score @game))]]
+   [:div
+    [:br ]
+    (str "Player " (+ 1 @current-player) " turn")
+    [:br]
+    [:input {:type :text
+             :disabled true
+             :value @score}]
+    [:br]
+    [numpad]
+    (println @game)]])
 
 
 (defn select-game-pane []
