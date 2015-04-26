@@ -113,8 +113,8 @@
     (str "Player " (+ 1 @current-player) " turn")
     [:br]
     [:input {:type :text
-             :disabled true
-             :value @score}]
+             :value @score
+             :on-change (fn [e] (do (reset! score (str (-> e .-target .-value)))))}]
     [:br]
     [numpad]
     (println @game)]])
@@ -138,6 +138,7 @@
       [:select {:id "player1"
                 :value @player1
                 :on-change #(reset! player1 (.-value (js/document.getElementById "player1")))}
+
        (doall
         (concat [^{:key "1-nil"}[:option ""]]
                 (map (fn [{:keys [name]}]
