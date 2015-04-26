@@ -101,6 +101,7 @@
 
 
 
+
 (defn play-page []
   [:div
    @message
@@ -114,7 +115,10 @@
     [:br]
     [:input {:type :text
              :value @score
-             :on-change (fn [e] (do (reset! score (str (-> e .-target .-value)))))}]
+             :on-change (fn [e] (let [value (str (-> e .-target .-value))
+                                      value (apply str (filter #(contains? #{\1 \2 \3 \4 \5 \6 \7 \8 \9 \0} %)
+                                                               value))]
+                                  (reset! score value)))}]
     [:br]
     [numpad]
     (println @game)]])
