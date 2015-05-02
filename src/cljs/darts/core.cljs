@@ -78,6 +78,13 @@
 (defn clear-message []
   (reset! message ""))
 
+(defn submit-score []
+  (let [new-score (js/parseInt @score)
+        points (points @current-player)]
+    (if (valid-score? new-score points)
+      (record-score @current-player @score)
+      (reset! message "Score not valid"))))
+
 (defn numpad []
   [:div
    (map (fn [n]
@@ -92,12 +99,7 @@
    [:button {:on-click (fn []
                          (reset! score "")
                          (clear-message))} "Clear"]
-   [:button {:on-click (fn []
-                         (let [new-score (js/parseInt @score)
-                               points (points @current-player)]
-                           (if (valid-score? new-score points)
-                             (record-score @current-player @score)
-                             (reset! message "Score not valid"))))} "Enter"]])
+   [:button {:on-click submit-score} "Enter"]])
 
 
 
@@ -115,6 +117,9 @@
     [:br]
     [:input {:type :text
              :value @score
+             :on-key-press (fn [e]
+                             (when (= (.-key e) "Enter")
+                               (submit-score)))
              :on-change (fn [e] (let [value (str (-> e .-target .-value))
                                       value (apply str (filter #(contains? #{\1 \2 \3 \4 \5 \6 \7 \8 \9 \0} %)
                                                                value))]
