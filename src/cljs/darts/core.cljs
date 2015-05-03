@@ -41,6 +41,12 @@
                               :rounds []}
                            :starting-score 310}))
 
+(def finished-game (atom {0 {:name "Davide"
+                             :rounds [180]}
+                          1 {:name "Steven"
+                             :rounds [0]}
+                          :starting-score 180}))
+
 (def example-game (atom {0 {:name "Davide"
                             :rounds [34 50 23 14 0]}
                          1 {:name "Steven"
@@ -49,7 +55,7 @@
 
 (def message (atom ""))
 
-(def game example-game)
+(def game finished-game)
 
 (def score (atom ""))
 (def current-player (atom 0))
@@ -117,31 +123,55 @@
 (defn print-player [player-id]
   [:span  (player-name player-id) ": " (points player-id) " " (print-rounds player-id) " avg: " (average player-id)])
 
+(defn game-in-progress? []
+  (and (> (points 0) 0)
+       (> (points 1) 0)))
+
+(defn other-player-id [id]
+  (mod (+ id 1)
+       2))
+
+(defn result-pane []
+  (let [winning-player-id (first (filter (fn [player]
+                                           (= 0 (points player)))
+                                         [0 1]))
+        losing-player-id (other-player-id winning-player-id)]
+    [:div
+     [:p "Congratulations! " (player-name winning-player-id)]
+     [:p
+      "You won in " (count (:rounds (get @game winning-player-id))) " rounds, "
+      "with an average of " (average winning-player-id) " (TODO ± from last time)"]
+     [:p (player-name losing-player-id) " lost with an average of " (average losing-player-id) " (TODO ± from last time)"]
+     [:button "Submit score"]]))
+
 (defn play-page []
-  [:div
-   @message
-   [:div
-    (print-player 0)
-    [:br]
-    (print-player 1)]
-   [:div
-    [:br]
-    (str (player-name @current-player) " to shoot")
-    [:br]
-    [:input {:type :text
-             :value @score
-             :on-key-press (fn [e]
-                             (when (= (.-key e) "Enter")
-                               (submit-score)))
-             :on-change (fn [e] (let [value (str (-> e .-target .-value))
-                                      value (apply str (filter #(contains? #{\1 \2 \3 \4 \5 \6 \7 \8 \9 \0} %)
-                                                               value))]
-                                  (reset! score value)))}]
-    [:br]
-    [numpad]
-    [:br]
-    [:a {:href "/"} "Quit, let's have a pint!"]
-    (println @game)]])
+  (if (game-in-progress?)
+    [:div
+     @message
+     [:div
+      (print-player 0)
+      [:br]
+      (print-player 1)]
+     [:div
+      [:br]
+      (str (player-name @current-player) " to shoot")
+      [:br]
+      [:input {:type :text
+               :value @score
+               :on-key-press (fn [e]
+                               (when (= (.-key e) "Enter")
+                                 (submit-score)))
+               :on-change (fn [e] (let [value (str (-> e .-target .-value))
+                                        value (apply str (filter #(contains? #{\1 \2 \3 \4 \5 \6 \7 \8 \9 \0} %)
+                                                                 value))]
+                                    (reset! score value)))}]
+      [:br]
+      [numpad]
+      [:br]
+      [:a {:href "/"} "Quit, let's have a pint!"]
+      (println @game)]]
+    result-pane)
+  )
 
 (defn select-game-pane []
   [:div
