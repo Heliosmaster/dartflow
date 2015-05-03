@@ -2,6 +2,7 @@
   (:require [compojure.core :refer [GET POST defroutes]]
             [compojure.route :refer [not-found resources]]
             [cheshire.core :as json]
+            [ring.middleware.json :refer [wrap-json-params]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [selmer.parser :refer [render-file]]
             [darts.db :as db]
@@ -12,15 +13,13 @@
   {:status 303
    :headers {"Location" path}})
 
-(defn list-players []
-  (json/generate-string (db/list-players)))
-
 (defroutes routes
   (GET "/" [] (render-file "templates/index.html" {:dev (env :dev?)}))
-  (GET "/list-players" [] (list-players))
-  (POST "/add-player/:name" [name]
-        (do (db/add-player name)
-            (redirect "/")))
+  (GET "/list-players" [] (json/generate-string (db/list-players)))
+  (GET "/list-matches" [] (json/generate-string (db/list-matches)))
+  (POST "/save-game" {params :params} (db/add-match (:game params)))
+  (POST "/add-player/:name" [name] (do (db/add-player name)
+                                       (redirect "/")))
 
 
   (resources "/")
@@ -28,7 +27,8 @@
 
 
 (def app
-  (let [handler (wrap-defaults routes (assoc site-defaults :security {:anti-forgery false}))]
-    (if (env :dev?)
-      (wrap-exceptions handler)
-      handler)))
+  (let [handler (-> routes
+                    (wrap-defaults (assoc site-defaults :security {:anti-forgery false})))]
+    (wrap-json-params (if (env :dev?)
+                        (wrap-exceptions handler)
+                        handler))))

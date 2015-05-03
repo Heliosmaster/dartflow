@@ -19,6 +19,7 @@
                  [reagent-utils "0.1.4"]
                  [org.clojure/clojurescript "0.0-3169" :scope "provided"]
                  [ring "1.3.2"]
+                 [ring/ring-json "0.3.1"]
                  [ring/ring-defaults "0.1.4"]
                  [prone "0.8.1"]
                  [compojure "1.3.3"]

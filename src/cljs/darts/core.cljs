@@ -31,26 +31,29 @@
 (def player2 (atom ""))
 (def game-score (atom 310))
 
+(defn other-player-id [id]
+  (if (= :p0 id) :p1 :p0))
+
 (defn both-players-selected? []
   (and (not= @player1 "")
        (not= @player2 "")))
 
-(def example-game-2 (atom {0 {:name "Davide"
-                              :rounds []}
-                           1 {:name "Steven"
-                              :rounds []}
+(def example-game-2 (atom {:p0 {:name "Davide"
+                                :rounds []}
+                           :p1 {:name "Steven"
+                                :rounds []}
                            :starting-score 310}))
 
-(def finished-game (atom {0 {:name "Davide"
-                             :rounds [180]}
-                          1 {:name "Steven"
-                             :rounds [0]}
+(def finished-game (atom {:p0 {:name "Davide"
+                               :rounds [180]}
+                          :p1 {:name "Steven"
+                               :rounds [0]}
                           :starting-score 180}))
 
-(def example-game (atom {0 {:name "Davide"
-                            :rounds [34 50 23 14 0]}
-                         1 {:name "Steven"
-                            :rounds [23 68 7 13]}
+(def example-game (atom {:p0 {:name "Davide"
+                              :rounds [34 50 23 14 0]}
+                         :p1 {:name "Steven"
+                              :rounds [23 68 7 13]}
                          :starting-score 310}))
 
 (def message (atom ""))
@@ -58,7 +61,7 @@
 (def game finished-game)
 
 (def score (atom ""))
-(def current-player (atom 0))
+(def current-player (atom :p0))
 
 (defn error-message [score points]
   (cond
@@ -74,7 +77,7 @@
          player
          new-score)
   (reset! score "")
-  (swap! current-player #(mod (inc %) 2)))
+  (swap! current-player other-player-id))
 
 (defn clear-message []
   (reset! message ""))
@@ -124,17 +127,13 @@
   [:span  (player-name player-id) ": " (points player-id) " " (print-rounds player-id) " avg: " (average player-id)])
 
 (defn game-in-progress? []
-  (and (> (points 0) 0)
-       (> (points 1) 0)))
-
-(defn other-player-id [id]
-  (mod (+ id 1)
-       2))
+  (and (> (points :p0) 0)
+       (> (points :p1) 0)))
 
 (defn result-pane []
   (let [winning-player-id (first (filter (fn [player]
                                            (= 0 (points player)))
-                                         [0 1]))
+                                         [:p0 :p1]))
         losing-player-id (other-player-id winning-player-id)]
     [:div
      [:p "Congratulations! " (player-name winning-player-id)]
@@ -142,16 +141,21 @@
       "You won in " (count (:rounds (get @game winning-player-id))) " rounds, "
       "with an average of " (average winning-player-id) " (TODO ± from last time)"]
      [:p (player-name losing-player-id) " lost with an average of " (average losing-player-id) " (TODO ± from last time)"]
-     [:button "Submit score"]]))
+     [:button {:on-click (fn []
+                           (POST "/save-game" {:params {:game @game}
+                                               :format :json}))}
+      "Save"]]
+    )
+  )
 
 (defn play-page []
   (if (game-in-progress?)
     [:div
      @message
      [:div
-      (print-player 0)
+      (print-player :p0)
       [:br]
-      (print-player 1)]
+      (print-player :p1)]
      [:div
       [:br]
       (str (player-name @current-player) " to shoot")
@@ -220,10 +224,10 @@
                             (reset! player2 ""))} "Reset"]
       [:button {:on-click (fn []
                             (swap! game #(assoc %1
-                                                0 {:name %2
-                                                   :rounds []}
-                                                1 {:name %3
-                                                   :rounds []}
+                                                :p0 {:name %2
+                                                     :rounds []}
+                                                :p1 {:name %3
+                                                     :rounds []}
                                                 :starting-score %4) @player1 @player2 @game-score)
                             (redirect-to "#/play"))} "Confirm"]])])
 
@@ -250,6 +254,20 @@
     [:li [:a {:href "#/new-game"} "New match"]]
     [:li [:a {:href "#/standings"} "Standings"]]]])
 
+(def matches (atom #{}))
+
+(defn load-matches []
+  (GET "/list-matches"
+       {:handler (fn [res]
+                   (->> res
+                        (t/read (t/reader :json))
+                        (walk/keywordize-keys)
+                        (reset! matches)))}))
+
+(defn standings-page []
+  #_(load-matches)
+  #_(println @matches))
+
 (defn current-page []
   [:div [(session/get :current-page)]])
 
@@ -265,6 +283,9 @@
 
 (secretary/defroute "/play" []
   (session/put! :current-page #'play-page))
+
+(secretary/defroute "/standings" []
+  (session/put! :current-page #'standings-page))
 
 (secretary/defroute "/new-player" []
   (session/put! :current-page #'new-player-page))
