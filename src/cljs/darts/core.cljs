@@ -54,9 +54,10 @@
 (def score (atom ""))
 (def current-player (atom 0))
 
-(defn valid-score? [score points]
-  (and (<= score 180)
-       (<= score points)))
+(defn error-message [score points]
+  (cond
+    (> score 180) "Score must be <= 180"
+    (> score points) "You cannot score more points than remaining ones. Over?"))
 
 (defn points [player]
   (- (:starting-score @game)
@@ -75,18 +76,19 @@
 (defn submit-score []
   (let [new-score (js/parseInt @score)
         points (points @current-player)]
-    (if (valid-score? new-score points)
-      (record-score @current-player @score)
-      (reset! message "Score not valid"))))
+    (if-let [error (error-message new-score points)]
+      (reset! message error)
+      (record-score @current-player @score))))
 
 (defn numpad []
   [:div
    (map (fn [n]
-          ^{:key n}[:button
-                    {:on-click (fn []
-                                 (swap! score str n)
-                                 (clear-message))}
-                    n])
+          ^{:key n}
+          [:button
+           {:on-click (fn []
+                        (swap! score str n)
+                        (clear-message))}
+           n])
         (range 10))
    [:button {:on-click (fn []
                          (swap! score #(subs % 0 (dec (count %)))))} "←"]
@@ -106,7 +108,7 @@
     [:br]
     [:span "Player 2: " (points 1)]]
    [:div
-    [:br ]
+    [:br]
     (str "Player " (+ 1 @current-player) " turn")
     [:br]
     [:input {:type :text
