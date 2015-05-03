@@ -59,9 +59,9 @@
     (> score 180) "Score must be <= 180"
     (> score points) "You cannot score more points than remaining ones. Over?"))
 
-(defn points [player]
+(defn points [player-id]
   (- (:starting-score @game)
-     (reduce + 0 (:rounds (get @game player)))) )
+     (reduce + 0 (:rounds (get @game player-id)))) )
 
 (defn record-score [player new-score]
   (swap! game #(update-in %1 [%2 :rounds] conj (js/parseInt %3))
@@ -80,6 +80,20 @@
       (reset! message error)
       (record-score @current-player @score))))
 
+(defn average [player-id]
+  (let [rounds (:rounds (get @game player-id))]
+    (if (> (count rounds)
+           0)
+      (-> (reduce + rounds)
+          (/ (count rounds))
+          (* 100)
+          Math/round
+          (/ 100))
+      0)))
+
+(defn print-rounds [player-id]
+  (str (:rounds (get @game player-id))))
+
 (defn numpad []
   [:div
    (map (fn [n]
@@ -97,16 +111,13 @@
                          (clear-message))} "Clear"]
    [:button {:on-click submit-score} "Enter"]])
 
-
-
-
 (defn play-page []
   [:div
    @message
    [:div
-    [:span "Player 1: " (points 0)]
+    [:span "Player 1: " (points 0) " " (print-rounds 0) " avg: " (average 0)]
     [:br]
-    [:span "Player 2: " (points 1)]]
+    [:span "Player 2: " (points 1) " " (print-rounds 1) " avg: " (average 1)]]
    [:div
     [:br]
     (str "Player " (+ 1 @current-player) " turn")
@@ -124,13 +135,16 @@
     [numpad]
     (println @game)]])
 
-
 (defn select-game-pane []
   [:div
    [:div "Starting score: "
     [:select {:id "score"
-              :on-change #(reset! game-score (.-value (js/document.getElementById "score")))}
-     (map (fn [score] ^{:key score} [:option score]) [310 410 510])]]])
+              :on-change #(reset! game-score
+                                  (.-value (js/document.getElementById "score")))}
+     (map (fn [score]
+            ^{:key score}
+            [:option score])
+          [310 410 510])]]])
 
 (defn new-game-page []
   (load-players)
