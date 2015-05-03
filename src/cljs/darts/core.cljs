@@ -17,19 +17,15 @@
 (defn redirect-to [path]
   (set! js/window.location.href path))
 
-(defonce players (atom nil))
-
-(defn parse-json [json]
-  (walk/keywordize-keys (t/read (t/reader :json) @players)))
+(def players (atom nil))
 
 (defn load-players []
-  (GET "/list-players" {:handler (fn [res]
-                                   (reset! players res))}))
-
-(defn list-players []
-  (load-players)
-  [:ul
-   (map (fn [player] ^{:key player} [:li (:name player)]) (parse-json @players))])
+  (GET "/list-players"
+       {:handler (fn [res]
+                   (->> res
+                        (t/read (t/reader :json))
+                        (walk/keywordize-keys)
+                        (reset! players)))}))
 
 (def player1 (atom ""))
 (def player2 (atom ""))
@@ -51,9 +47,6 @@
                             :rounds [23 68 7 13]}
                          :starting-score 310}))
 
-(defn remaining-points [{:keys [rounds]} starting-score]
-  (- starting-score (reduce + 0 rounds)))
-
 (def message (atom ""))
 
 (def game example-game)
@@ -66,7 +59,8 @@
        (<= score points)))
 
 (defn points [player]
-  (remaining-points (get @game player) (:starting-score @game)))
+  (- (:starting-score @game)
+     (reduce + 0 (:rounds (get @game player)))) )
 
 (defn record-score [player new-score]
   (swap! game #(update-in %1 [%2 :rounds] conj (js/parseInt %3))
@@ -108,9 +102,9 @@
   [:div
    @message
    [:div
-    [:span "Player 1: " (remaining-points (get @game 0) (:starting-score @game))]
+    [:span "Player 1: " (points 0)]
     [:br]
-    [:span "Player 2: " (remaining-points (get @game 1) (:starting-score @game))]]
+    [:span "Player 2: " (points 1)]]
    [:div
     [:br ]
     (str "Player " (+ 1 @current-player) " turn")
@@ -152,7 +146,7 @@
         (concat [^{:key "1-nil"}[:option ""]]
                 (map (fn [{:keys [name]}]
                        ^{:key name}[:option name])
-                     (parse-json @players))))]]
+                     @players)))]]
      [:li (str "Player 2: ")
       [:select {:id "player2"
                 :value @player2
@@ -162,7 +156,7 @@
                 (map (fn [{:keys [name]}]
                        (when (not= @player1 name)
                          ^{:key name}[:option name]))
-                     (parse-json @players))))]]]
+                     @players)))]]]
     [select-game-pane]]
    (when (both-players-selected?)
      [:div
