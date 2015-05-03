@@ -111,16 +111,22 @@
                          (clear-message))} "Clear"]
    [:button {:on-click submit-score} "Enter"]])
 
+(defn player-name [player-id]
+  (:name (get @game player-id)))
+
+(defn print-player [player-id]
+  [:span  (player-name player-id) ": " (points player-id) " " (print-rounds player-id) " avg: " (average player-id)])
+
 (defn play-page []
   [:div
    @message
    [:div
-    [:span "Player 1: " (points 0) " " (print-rounds 0) " avg: " (average 0)]
+    (print-player 0)
     [:br]
-    [:span "Player 2: " (points 1) " " (print-rounds 1) " avg: " (average 1)]]
+    (print-player 1)]
    [:div
     [:br]
-    (str "Player " (+ 1 @current-player) " turn")
+    (str (player-name @current-player) " to shoot")
     [:br]
     [:input {:type :text
              :value @score
@@ -133,6 +139,8 @@
                                   (reset! score value)))}]
     [:br]
     [numpad]
+    [:br]
+    [:a {:href "/"} "Quit, let's have a pint!"]
     (println @game)]])
 
 (defn select-game-pane []
