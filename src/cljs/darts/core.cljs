@@ -144,9 +144,7 @@
      [:button {:on-click (fn []
                            (POST "/save-game" {:params {:game @game}
                                                :format :json}))}
-      "Save"]]
-    )
-  )
+      "Save"]]))
 
 (defn play-page []
   (if (game-in-progress?)
@@ -254,19 +252,56 @@
     [:li [:a {:href "#/new-game"} "New match"]]
     [:li [:a {:href "#/standings"} "Standings"]]]])
 
-(def matches (atom #{}))
+(def matches (atom nil))
 
-(defn load-matches []
-  (GET "/list-matches"
-       {:handler (fn [res]
-                   (->> res
-                        (t/read (t/reader :json))
-                        (walk/keywordize-keys)
-                        (reset! matches)))}))
+(defn standings-component []
+  [:div
+   (println @matches)
+   [:div "Hello"]])
+
+(defn winning-player [{:keys [starting-score] :as match}]
+  (let [score-0 (reduce + 0 (:rounds (:p0 match)))]
+    (if (= starting-score score-0)
+      0
+      1)))
+
+(defn averages [match]
+  (let [rounds-0 (:rounds (:p0 match))
+        rounds-1 (:rounds (:p1 match))
+        average-0 (/ (reduce + 0 rounds-0)
+                     (count rounds-0))
+        average-1 (/ (reduce + 0 rounds-1)
+                     (count rounds-1))
+]
+    [average-0 average-1]))
+
+(defn render-match [match]
+  (str (:name (:p0 match))
+       " v. "
+       (:name (:p1 match))
+       (if (= 0 (winning-player match))
+         " 1 - 0 "
+         " 0 - 1 ")
+       "(avg. " (clojure.string/join ", " (averages match)) ")"))
+
+(defn render-matches [ms]
+  (when ms
+    (into [:ul]
+     (map-indexed (fn [i m] ^{:key i}
+                    [:li (render-match m)])
+          ms)))
+  )
 
 (defn standings-page []
-  #_(load-matches)
-  #_(println @matches))
+  (let [get-stuff #(GET "/list-matches"
+                        {:handler (fn [r]
+                                    (->> r
+                                         (t/read (t/reader :json))
+                                         (walk/keywordize-keys)
+                                         (reset! matches)))})]
+    (get-stuff)
+    (fn []
+      (render-matches @matches))))
 
 (defn current-page []
   [:div [(session/get :current-page)]])
