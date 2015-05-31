@@ -250,14 +250,10 @@
   [:div [:h2 "Dartflow"]
    [:ul
     [:li [:a {:href "#/new-game"} "New match"]]
-    [:li [:a {:href "#/standings"} "Standings"]]]])
+    [:li [:a {:href "#/standings"} "Standings"]]
+    [:li [:a {:href "#/matches"} "Past Matches"]]]])
 
 (def matches (atom nil))
-
-(defn standings-component []
-  [:div
-   (println @matches)
-   [:div "Hello"]])
 
 (defn winning-player [{:keys [starting-score] :as match}]
   (let [score-0 (reduce + 0 (:rounds (:p0 match)))]
@@ -284,15 +280,16 @@
          " 0 - 1 ")
        "(avg. " (clojure.string/join ", " (averages match)) ")"))
 
-(defn render-matches [ms]
-  (when ms
+(defn render-matches [matches]
+  (when matches
     (into [:ul]
      (map-indexed (fn [i m] ^{:key i}
                     [:li (render-match m)])
-          ms)))
-  )
+          matches))))
 
-(defn standings-page []
+(defn standings-page [])
+
+(defn list-matches-page []
   (let [get-stuff #(GET "/list-matches"
                         {:handler (fn [r]
                                     (->> r
@@ -321,6 +318,9 @@
 
 (secretary/defroute "/standings" []
   (session/put! :current-page #'standings-page))
+
+(secretary/defroute "/matches" []
+  (session/put! :current-page #'list-matches-page))
 
 (secretary/defroute "/new-player" []
   (session/put! :current-page #'new-player-page))
